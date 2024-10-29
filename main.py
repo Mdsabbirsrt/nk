@@ -1,7 +1,6 @@
 import logging
 from telegram import Update
-from telegram.ext import Updater, CommandHandler, CallbackContext
-import requests
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
 # Enable logging
 logging.basicConfig(
@@ -12,12 +11,12 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Define a command handler function
-def start(update: Update, context: CallbackContext) -> None:
-    update.message.reply_text('Hello! Use /bin <bin> to check a BIN.')
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await update.message.reply_text('Hello! Use /bin <bin> to check a BIN.')
 
-def check_bin(update: Update, context: CallbackContext) -> None:
+async def check_bin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if len(context.args) != 1:
-        update.message.reply_text('Please provide a BIN to check.')
+        await update.message.reply_text('Please provide a BIN to check.')
         return
 
     bin_number = context.args[0]
@@ -27,22 +26,21 @@ def check_bin(update: Update, context: CallbackContext) -> None:
         response = requests.get(api_url)
         response.raise_for_status()
         data = response.json()
-        update.message.reply_text(f"BIN Info: {data}")
+        await update.message.reply_text(f"BIN Info: {data}")
     except requests.exceptions.RequestException as e:
         logger.error(f"API request failed: {e}")
-        update.message.reply_text('Failed to retrieve BIN information.')
+        await update.message.reply_text('Failed to retrieve BIN information.')
 
-def main() -> None:
+async def main() -> None:
     # Replace 'YOUR_TOKEN' with your bot's API token
-    updater = Updater("7819656172:AAFo9XjkRk6LXfVHArkeMn_4uLIzyqzHp10")
+    application = ApplicationBuilder().token("7819656172:AAFo9XjkRk6LXfVHArkeMn_4uLIzyqzHp10").build()
 
-    dispatcher = updater.dispatcher
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("bin", bin))
 
-    dispatcher.add_handler(CommandHandler("start", start))
-    dispatcher.add_handler(CommandHandler("bin", check_bin))
-
-    updater.start_polling()
-    updater.idle()
+    # Start the bot
+    await application.run_polling()
 
 if __name__ == '__main__':
-    main()
+    import asyncio
+    asyncio.run(main())
